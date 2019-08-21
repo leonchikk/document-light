@@ -1,0 +1,62 @@
+version: '3.5'
+
+services:
+  rabbit-mq:
+    image: rabbitmq:3.7-management
+    container_name: rabbit-mq
+    networks:
+      - ngrok-net
+    ports:
+      - 15672:15672
+      - 5672:5672
+      
+  docker-db:
+    ports:
+      - 1433:1433
+    networks:
+      - ngrok-net
+    image: "mcr.microsoft.com/mssql/server"
+    container_name: docker-db
+    environment:
+        SA_PASSWORD: "MyPassword001"
+        ACCEPT_EULA: "Y"
+      
+  ngrok:
+    ports:
+      - 4040:4040
+    image: "gtriggiano/ngrok-tunnel"
+    container_name: ngrok
+    stdin_open: true
+    tty: true
+    environment:
+        TARGET_HOST: "192.168.99.100"
+        TARGET_PORT: 27015
+      
+  document-light-api:
+    ports:
+      - 27015:27015
+    networks:
+      - ngrok-net
+    environment:
+      ASPNETCORE_URLS: http://+:27015
+      ASPNETCORE_ENVIRONMENT: Development
+    image: "document-light"
+    container_name: document-light-api
+    depends_on:
+      - docker-db
+      
+  template-light-api:
+    ports:
+      - 5000:5000
+    networks:
+      - ngrok-net
+    environment:
+      ASPNETCORE_URLS: http://+:27015
+      ASPNETCORE_ENVIRONMENT: Development
+    image: "template-light"
+    container_name: template-light-api
+    depends_on:
+      - docker-db
+networks:
+  ngrok-net:
+    external: true
